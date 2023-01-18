@@ -1,50 +1,31 @@
-object Main {
-  def main(args: Array[String]): Unit = {
-    val dimension = 3
-    val screen =
-      """|0:100,125, 56,200
-         |1:255,  0,  0
-         |2:  0,135,200
-         |3:220, 12,  0,100
-         |4: 45, 97,  0
-         |5:  0,  0,  0
-         |6:  0,  0,  0,0
-         |7:  0,  0,  0
-         |8:255,255,255
-         |""".stripMargin
+case class Color(r: Int, g: Int, b: Int)
 
-    case class Color(r: Int, g: Int, b: Int)
-    case class Pos(x: Int, y: Int)
-    object Pos {
-      def apply(index: Int): Pos = Pos(index % dimension, index / dimension)
-    }
-    trait Pixel {
-      val pos: Pos
-      val color: Color
-    }
-    case class RGBPixel(pos: Pos, color: Color) extends Pixel
-    case class TransparentPixel(pos: Pos, color: Color, transparency: Int) extends Pixel
+case class Pos(x: Int, y: Int)
 
-    val pixels = screen.split("\n").toList.map { line =>
-      val Array(pix, color, transparency) = line.split(":")
-      val Array(r, g, b) = color.split(",")
-      if (transparency.nonEmpty) {
-        TransparentPixel(Pos(pix.toInt), Color(r.toInt, g.toInt, b.toInt), transparency.toInt)
-      } else {
-        RGBPixel(Pos(pix.toInt), Color(r.toInt, g.toInt, b.toInt))
+abstract class Pixel(val pos: Pos, val color: Color)
+
+case class TransparentPixel(override val pos: Pos, override val color: Color, transparency: Int) extends Pixel(pos, color)
+
+case class RGBPixel(override val pos: Pos, override val color: Color) extends Pixel(pos, color)
+
+val screen = "0:255,0,0,0|1:0,255,0,0|2:0,0,255,0|3:0,0,0,255"
+
+val pixels = screen.stripMargin.split("\\|").zipWithIndex.flatMap {
+  case (line, y) =>
+    val Array(index, data) = line.split(":")
+    if (index.isEmpty) None
+    else {
+      val Array(r, g, b, t) = data.split(",")
+      val color = Color(r.toInt, g.toInt, b.toInt)
+      val transparency = if (t == "null" || t == null) None else Some(t.toInt)
+      transparency match {
+        case Some(t) => Some(TransparentPixel(Pos(index.toInt, y), color, t))
+        case None => Some(RGBPixel(Pos(index.toInt, y), color))
       }
     }
-
-    val maxReds = pixels.groupBy(_.pos.y).mapValues(_.maxBy(_.color.r))
-
-    val maxTransparentPos = pixels.collect { case p: TransparentPixel => p }.maxBy(_.transparency).pos
-
-    pixels.foreach { p =>
-      print(s"|$p")
-      if (p.pos.x > 1) println()
-    }
-
-    println(maxReds)
-    println(maxTransparentPos)
-  }
 }
+
+val redPixelByRow = pixels.groupBy(_.pos.y).mapValues(pixels => pixels.maxBy(_.color.r))
+val mostTransparentPixel = pixels.filter(_.isInstanceOf[TransparentPixel]).maxBy(_.asInstanceOf[TransparentPixel].transparency)
+
+println(mostTransparentPixel)
