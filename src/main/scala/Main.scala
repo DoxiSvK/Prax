@@ -5,6 +5,7 @@ import akka.http.scaladsl.model.headers._
 import akka.stream.ActorMaterializer
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.io.StdIn
 
 object BurgersClient extends App {
   implicit val system = ActorSystem()
@@ -14,9 +15,12 @@ object BurgersClient extends App {
   val apiHostHeader = RawHeader("X-Rapidapi-Host", "burgers-hub.p.rapidapi.com")
   val headers = List(apiKeyHeader, apiHostHeader)
 
+  print("Enter a burger ID: ")
+  val burgerId = StdIn.readInt()
+
   val request = HttpRequest(
     HttpMethods.GET,
-    uri = "https://burgers-hub.p.rapidapi.com/burgers",
+    uri = s"https://burgers-hub.p.rapidapi.com/burgers/$burgerId",
     headers = headers
   )
 
