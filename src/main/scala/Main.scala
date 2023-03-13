@@ -1,37 +1,33 @@
-object main extends App {
+import akka.actor.ActorSystem
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.headers._
+import akka.stream.ActorMaterializer
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 
-  val dimension = 3
-  val screen =
-    """|0:100,125, 56,200
-       |1:255,  0,  0
-       |2:  0,135,200
-       |3:220, 12,  0,100
-       |4: 45, 97,  0
-       |5:  0,  0,  0
-       |6:  0,  0,  0,0
-       |7:  0,  0,  0
-       |8:255,255,255
-       |""".stripMargin
-  case class Pos(y : Int , x : Int)
-  case class Props(red:Int, green:Int, blue:Int, trans: Option[Int])
-  case class Pixel(pos:Pos,props:Props)
-  val pixels: List[Pixel] =
+object BurgersClient extends App {
+  implicit val system = ActorSystem()
+  implicit val materializer = ActorMaterializer()
 
-    for (line <- screen.split("\n").toList.map(_.replace(" ",""))) yield {
-      line.trim match{
-        case s"$id:$red,$green,$blue,$trans" =>{
-          Pixel(Pos(id.toInt / dimension , id.toInt % dimension), Props(red.toInt, green.toInt, blue.toInt, trans.toIntOption))}
-        case s"$id:$red,$green,$blue" => {
-          Pixel(Pos(id.toInt / dimension , id.toInt % dimension), Props(red.toInt, green.toInt, blue.toInt, None))}
-      }
+  val apiKeyHeader = RawHeader("X-Rapidapi-Key", "88f69f9591msh50a3c173bb8fc51p114cbdjsndedf25fdc2a2")
+  val apiHostHeader = RawHeader("X-Rapidapi-Host", "burgers-hub.p.rapidapi.com")
+  val headers = List(apiKeyHeader, apiHostHeader)
+
+  val request = HttpRequest(
+    HttpMethods.GET,
+    uri = "https://burgers-hub.p.rapidapi.com/burgers",
+    headers = headers
+  )
+
+  val responseF = Http().singleRequest(request)
+
+  responseF.map { response =>
+    if (response.status.isSuccess()) {
+      response.entity.toStrict(5.seconds).map(_.data.utf8String).foreach(println)
+    } else {
+      println(s"Request failed with status ${response.status}")
+      response.discardEntityBytes()
     }
-  pixels.foreach(println)
-  val red : Map[Int , Pixel] =  pixels.groupBy(_.pos.y).map{
-    case (riadok,pixel) => (riadok,pixel.maxBy(_.props.red))
-  }
-  println("max red --> " + red)
-  val trans : Map[Int,Int] = pixels.groupBy(_.pos.y).map{
-    case (riadok,pixel) => (riadok,(pixel.maxBy(_.props.trans)).pos.x)
-  }
-  println("max trans --> " + trans)
+  }.onComplete(_ => system.terminate())
 }
