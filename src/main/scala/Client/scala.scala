@@ -1,4 +1,5 @@
 import akka.actor.ActorSystem
+import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
@@ -6,8 +7,13 @@ import akka.stream.ActorMaterializer
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.io.StdIn
+import scala.util.{Failure, Success}
+import scala.util.Success
+import scala.util.Failure
 
-object BurgersClient extends App {
+
+
+object Client extends App {
   implicit val system = ActorSystem()
   implicit val materializer = ActorMaterializer()
 
@@ -26,12 +32,20 @@ object BurgersClient extends App {
 
   val responseF = Http().singleRequest(request)
 
-  responseF.map { response =>
+  responseF.flatMap { response =>
     if (response.status.isSuccess()) {
-      response.entity.toStrict(5.seconds).map(_.data.utf8String).foreach(println)
+      response.entity.toStrict(5.seconds).map(_.data.utf8String)
     } else {
-      println(s"Request failed with status ${response.status}")
       response.discardEntityBytes()
+      throw new RuntimeException(s"Request failed with status ${response.status}")
     }
-  }.onComplete(_ => system.terminate())
+  }.onComplete { result =>
+    result match {
+      case scala.util.Success(responseBody) =>
+        println(s"Response: $responseBody")
+      case scala.util.Failure(ex) =>
+        println(s"Request failed: ${ex.getMessage}")
+    }
+    system.terminate()
+  }
 }

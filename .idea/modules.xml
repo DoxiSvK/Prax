@@ -2,8 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/Prax.iml" filepath="$PROJECT_DIR$/.idea/modules/Prax.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/Prax-build.iml" filepath="$PROJECT_DIR$/.idea/modules/Prax-build.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/openai.iml" filepath="$PROJECT_DIR$/.idea/modules/openai.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/openai-build.iml" filepath="$PROJECT_DIR$/.idea/modules/openai-build.iml" />
     </modules>
   </component>
 </project>
